@@ -73,15 +73,15 @@ document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 });
 
-let lastMouse = { x: 0, y: 0 };
+let lastMouse = null;
 document.addEventListener('mousemove', e => {
   if (director.currentStep()?.id === IntroState.RESTRAINTS) {
-    if (lastMouse.x === 0 && lastMouse.y === 0) {
-      lastMouse.x = e.clientX;
-      lastMouse.y = e.clientY;
-      return;
+    if (lastMouse) {
+      director.registerMouseMove(e.clientX, e.clientY);
     }
-    director.registerMouseMove(e.clientX, e.clientY);
+    lastMouse = { x: e.clientX, y: e.clientY };
+  } else {
+    lastMouse = null;
   }
 });
 

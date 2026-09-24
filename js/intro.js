@@ -117,7 +117,7 @@ export class IntroDirector {
     this.index = 0;
     this.timer = 0;
     this.mouseWiggle = 0;
-    this.lastMouse = { x: 0, y: 0 };
+    this.lastMouse = null;
     this.finished = false;
     this.listeners = {
       onStep: [],
@@ -141,20 +141,20 @@ export class IntroDirector {
 
   // Called when player moves the mouse — for the restraint mechanic
   registerMouseMove(x, y) {
-    const step = this.currentStep();
-    if (!step || step.id !== IntroState.RESTRAINTS) return;
+  const step = this.currentStep();
+  if (!step || step.id !== IntroState.RESTRAINTS) return;
 
+  if (this.lastMouse) {
     const dx = x - this.lastMouse.x;
     const dy = y - this.lastMouse.y;
-    const dist = Math.hypot(dx, dy);
-    this.mouseWiggle += dist;
-    this.lastMouse.x = x;
-    this.lastMouse.y = y;
-
-    if (this.mouseWiggle >= step.effects.requiresMouseWiggle) {
-      this.advance();
-    }
+    this.mouseWiggle += Math.hypot(dx, dy);
   }
+  this.lastMouse = { x, y };
+
+  if (this.mouseWiggle >= step.effects.requiresMouseWiggle) {
+    this.advance();
+  }
+}
 
   // Called when player presses a key — for hide, keycard, etc.
   registerAction(action) {

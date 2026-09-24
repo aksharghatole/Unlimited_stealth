@@ -26,7 +26,7 @@ export class Player {
     if (keys['a'] || keys['arrowleft']) dx -= 1;
     if (keys['d'] || keys['arrowright']) dx += 1;
 
-    this.crouching = !!keys['s'] && !dx && !dy;
+    this.crouching = !!keys['s'];
 
     if (dx || dy) {
       const mag = Math.hypot(dx, dy);
