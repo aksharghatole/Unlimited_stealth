@@ -1,0 +1,134 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  color: #0f0;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  image-rendering: pixelated;
+  background: #000;
+}
+
+/* Subtitle box */
+#subtitle-box {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  text-align: center;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  z-index: 10;
+}
+
+#subtitle-text {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.75);
+  border-left: 3px solid #0f0;
+  padding: 10px 20px;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: #b0ffb0;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+}
+
+/* Objective box */
+#objective-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  text-align: right;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+  z-index: 10;
+}
+
+#objective-label {
+  font-size: 10px;
+  color: #0f0;
+  opacity: 0.6;
+  letter-spacing: 3px;
+}
+
+#objective-text {
+  font-size: 14px;
+  color: #0f0;
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.6);
+  margin-top: 4px;
+}
+
+/* HUD */
+#hud {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  gap: 20px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #0f0;
+  opacity: 0.7;
+  z-index: 10;
+}
+
+.hud-item span {
+  color: #b0ffb0;
+}
+
+/* Vignette — darkness closing in */
+#vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.6) 80%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
+  z-index: 5;
+  transition: opacity 1s ease;
+}
+
+/* Blur overlay — for the awakening */
+#blur-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  backdrop-filter: blur(0px);
+  background: rgba(255, 255, 255, 0);
+  z-index: 8;
+  transition: backdrop-filter 1s ease, background 1s ease;
+}
+
+/* Screen shake */
+@keyframes shake {
+  0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
+  25% { transform: translate(-50%, -50%) translate(-4px, 2px); }
+  50% { transform: translate(-50%, -50%) translate(3px, -3px); }
+  75% { transform: translate(-50%, -50%) translate(-2px, 4px); }
+}
+
+.shake {
+  animation: shake 0.3s ease;
+}
+
+/* Red pulse when danger */
+@keyframes danger-pulse {
+  0%, 100% { box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.2); }
+  50% { box-shadow: inset 0 0 200px rgba(255, 0, 0, 0.5); }
+}
+
+.danger {
+  animation: danger-pulse 1.5s ease-in-out infinite;
+}

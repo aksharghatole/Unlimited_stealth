@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UMBRA: Protocol Zero</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game" width="960" height="640"></canvas>
+
+  <div id="subtitle-box">
+    <div id="subtitle-text"></div>
+  </div>
+
+  <div id="objective-box">
+    <div id="objective-label">OBJECTIVE</div>
+    <div id="objective-text"></div>
+  </div>
+
+  <div id="hud">
+    <div class="hud-item">FLOOR <span id="hud-floor">—</span></div>
+    <div class="hud-item">VIS <span id="hud-vis">0%</span></div>
+    <div class="hud-item">SHADOW <span id="hud-shadow">100%</span></div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="blur-overlay"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
