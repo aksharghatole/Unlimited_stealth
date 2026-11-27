@@ -47,6 +47,12 @@ export function render(ctx, state) {
       ctx.fillStyle = TILE_COLORS[t] || '#000';
       ctx.fillRect(tx, ty, ts, ts);
 
+      if(t===TileType.VENT){
+        ctx.globalAlpha=Math.max(.2,visibility);
+        ctx.fillStyle='#17352d';ctx.fillRect(tx+3,ty+3,ts-6,ts-6);
+        ctx.strokeStyle='#4a9b80';ctx.lineWidth=1;
+        for(let i=8;i<ts-5;i+=6){ctx.beginPath();ctx.moveTo(tx+6,ty+i);ctx.lineTo(tx+ts-6,ty+i);ctx.stroke();}
+      }
       // Slight grid outline
       ctx.globalAlpha = visibility * 0.15;
       ctx.strokeStyle = '#0f0';
@@ -77,7 +83,7 @@ export function render(ctx, state) {
       ctx.globalAlpha = Math.max(0.15, 1 - dist / 320);
 
       // Vision cone
-      ctx.fillStyle = 'rgba(255, 200, 100, 0.08)';
+      ctx.fillStyle = scientist.state==='CHASE' ? 'rgba(255,70,60,.22)' : scientist.state==='SEARCH' ? 'rgba(255,190,70,.16)' : 'rgba(255, 200, 100, 0.08)';
       ctx.beginPath();
       ctx.moveTo(sx, sy);
       ctx.arc(sx, sy, 220, scientist.heading - 0.6, scientist.heading + 0.6);
@@ -96,10 +102,29 @@ export function render(ctx, state) {
       ctx.arc(sx, sy, 5, 0, Math.PI * 2);
       ctx.fill();
 
+      if(scientist.isGuard && scientist.state!=='PATROL'){
+        ctx.fillStyle=scientist.state==='CHASE'?'#ff6666':'#ffd07a';ctx.font='bold 15px monospace';
+        ctx.fillText(scientist.state==='CHASE'?'!':'?',sx-4,sy-15);
+      }
       ctx.globalAlpha = 1;
     }
   }
 
+  for(const camera of state.cameras||[]){
+    if(Math.hypot(camera.x-player.x,camera.y-player.y)>310)continue;
+    const x=camera.x-camX,y=camera.y-camY;
+    ctx.fillStyle=camera.suspicion>.5?'rgba(255,65,75,.20)':'rgba(100,170,255,.10)';
+    ctx.beginPath();ctx.moveTo(x,y);ctx.arc(x,y,190,camera.heading-.45,camera.heading+.45);ctx.closePath();ctx.fill();
+    ctx.save();ctx.translate(x,y);ctx.rotate(camera.heading);
+    ctx.fillStyle='#6688a5';ctx.fillRect(-9,-5,18,10);
+    ctx.fillStyle=camera.suspicion>.5?'#ff5664':'#91d6ff';ctx.fillRect(5,-3,5,6);
+    ctx.restore();
+  }
+  if(state.lurePulse){
+    const p=state.lurePulse;
+    ctx.strokeStyle='rgba(100,220,200,'+Math.max(0,p.time/1.2)+')';
+    ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x-camX,p.y-camY,12+(1.2-p.time)*120,0,Math.PI*2);ctx.stroke();
+  }
   // Objective markers: local only, so exploring the facility still matters.
   if (lab.card && !lab.keycardTaken) {
     const x = (lab.card.x + .5) * ts, y = (lab.card.y + .5) * ts;
@@ -160,7 +185,7 @@ export function render(ctx, state) {
   if (player.crouching) {
     ctx.fillStyle = '#0f0';
     ctx.font = '10px monospace';
-    ctx.fillText('[CROUCH]', px - 22, py - 18);
+    ctx.fillText(state.concealed?'[CONCEALED]':'[CROUCH]', px - 22, py - 18);
   }
 
   // Apply blur overlay

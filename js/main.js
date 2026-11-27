@@ -7,6 +7,7 @@ import { Scientist } from './scientist.js';
 import { AudioEngine } from './audio.js';
 import { render } from './render.js';
 import { Facility, FLOOR_COUNT } from './facility.js';
+import { Guard, SecurityCamera, isHidden, lureNearest } from './security.js';
 
 // --- Setup ---
 const canvas = document.getElementById('game');
@@ -27,6 +28,11 @@ let lab = new Lab();
 const runSeed = Math.floor(Math.random() * 4294967296);
 let floor = 0;
 let guards = [];
+let cameras = [];
+let lureCooldown = 0;
+let lurePulse = null;
+const statusEl = document.getElementById('hud-status');
+const lureEl = document.getElementById('hud-lure');
 const alertEl = document.getElementById('hud-alert');
 const player = new Player(
   SPAWN_TILE.x * lab.tileSize + lab.tileSize / 2,
@@ -60,6 +66,14 @@ document.addEventListener('keydown', e => {
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (ended || e.repeat) return;
 
+  if (floor && k === 'q' && lureCooldown<=0) {
+    const point={x:player.x,y:player.y};
+    lureNearest(guards,point,lab);
+    lureCooldown=12;
+    lurePulse={...point,time:1.2};
+    audio.playBeep(350,.12,.12);
+    return;
+  }
   if (floor && k === 'e') {
     if (lab.collect(player)) {
       audio.playBeep(1400, 0.08, 0.2);
@@ -182,12 +196,9 @@ function enterFloor(number) {
   player.vis = 0;
   player.shadow = 100;
   scientist = null;
-  guards = lab.patrols.map(path => {
-    const guard = new Scientist(path);
-    guard.speed = 50 + floor * 5;
-    guard.isGuard = true;
-    return guard;
-  });
+  guards = lab.patrols.map(path => new Guard(path,floor));
+  cameras = lab.cameras.map(spec => new SecurityCamera(spec,lab));
+  lureCooldown=0; lurePulse=null;
   detectionTime = 0;
   document.body.classList.remove('danger');
   effects = { blur: 0, brightness: 0.1, heartbeat: 0.5, vignette: 0.25, canMove: true };
@@ -195,7 +206,7 @@ function enterFloor(number) {
   floorEl.textContent = floor + '/' + FLOOR_COUNT;
   objectiveEl.textContent = 'Find the amber keycard [E]';
   objectiveBox.style.opacity = 1;
-  subtitleEl.textContent = 'SECTOR ' + String(floor).padStart(2,'0') + ' — avoid patrols. Find an access card.';
+  subtitleEl.textContent = 'SECTOR ' + String(floor).padStart(2,'0') + ' — C: hide in vents. Q: noise lure. E: access card.';
   subtitleBox.style.opacity = 1;
 }
 director.on('onComplete', () => enterFloor(1));
@@ -243,12 +254,22 @@ function loop(now) {
   }
 
   if (floor && !ended) {
-    for (const guard of guards) guard.update(dt);
-    const seen = guards.some(guard => guard.canSee(player, lab));
-    detectionTime = seen ? Math.min(1.25, detectionTime + dt) : Math.max(0, detectionTime - dt * 1.5);
-    document.body.classList.toggle('danger', detectionTime > 0.2);
+    lureCooldown=Math.max(0,lureCooldown-dt);
+    if(lurePulse && (lurePulse.time-=dt)<=0) lurePulse=null;
+    for(const camera of cameras) if(camera.tick(dt,player,lab)) {
+      lureNearest(guards,player,lab,Infinity);
+      audio.playBeep(850,.1,.12);
+    }
+    let captured=false;
+    for(const guard of guards) if(guard.tick(dt,player,lab)) captured=true;
+    const chasing=guards.some(g=>g.state==='CHASE');
+    const searching=guards.some(g=>g.state==='SEARCH');
+    detectionTime=1.25*Math.max(0,...guards.map(g=>g.state==='CHASE'?1:g.suspicion),...cameras.map(c=>c.suspicion));
+    statusEl.textContent=chasing?'PURSUIT':isHidden(player,lab)?'CONCEALED':searching?'SEARCH':detectionTime>.25?'SUSPICIOUS':'CLEAR';
+    lureEl.textContent=lureCooldown>0?Math.ceil(lureCooldown)+'s':'READY';
+    document.body.classList.toggle('danger', chasing || detectionTime > .65);
     audio.setHeartbeat(0.45 + detectionTime * 0.4);
-    if (detectionTime >= 1.25) {
+    if (captured) {
       audio.playAlarm();
       endGame(false);
     } else if (lab.reachedExit(player)) {
@@ -259,7 +280,7 @@ function loop(now) {
 
   alertEl.textContent = Math.round(detectionTime / 1.25 * 100) + '%';
   if (!ended && (director.currentStep() || floor)) {
-    const target = player.crouching ? 10 : player.moving ? 70 : 35;
+    const target = floor && isHidden(player,lab) ? 0 : player.crouching ? 15 : player.moving ? 70 : 35;
     player.vis += (target - player.vis) * Math.min(1, dt * 3);
     player.shadow = 100 - player.vis;
   }
@@ -274,6 +295,9 @@ function loop(now) {
     player,
     scientist,
     guards,
+    cameras,
+    lurePulse,
+    concealed: floor && isHidden(player,lab),
     canvas,
     effects,
     introStep: director.currentStep()?.id

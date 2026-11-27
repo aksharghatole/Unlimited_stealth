@@ -69,6 +69,19 @@ export class Facility extends Lab {
       const shift=Math.floor(rng()*path.length);
       this.patrols.push(path.slice(shift).concat(path.slice(0,shift)));
     }
+    this.hideouts=[];
+    for(const r of rooms){
+      if(r.id===start) continue;
+      const spot={x:r.x+1,y:r.y+3};
+      this.map[spot.y][spot.x]=TileType.VENT;
+      this.hideouts.push(spot);
+    }
+    this.cameras=[];
+    const cameraRooms=rooms.filter(r=>r.id!==start && r.id!==cardRoom.id);
+    for(let i=0;i<Math.min(floor-1,cameraRooms.length);i++){
+      const r=cameraRooms.splice(Math.floor(rng()*cameraRooms.length),1)[0];
+      this.cameras.push({x:r.x+2,y:r.y,heading:Math.PI/2,phase:rng()*6});
+    }
   }
   collect(player) {
     if(this.keycardTaken || this.distanceTo(player,this.card)>55) return false;
