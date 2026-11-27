@@ -14,7 +14,8 @@ const TILE_COLORS = {
 };
 
 export function render(ctx, state) {
-  const { lab, player, scientist, canvas, effects } = state;
+  const { lab, player, canvas, effects } = state;
+  const actors = [...(state.scientist ? [state.scientist] : []), ...(state.guards || [])];
   const ts = lab.tileSize;
 
   // Camera follows player, clamped to map
@@ -68,7 +69,7 @@ export function render(ctx, state) {
   }
 
   // Scientist
-  if (scientist) {
+  for (const scientist of actors) {
     const sx = scientist.x - camX;
     const sy = scientist.y - camY;
     const dist = Math.hypot(scientist.x - player.x, scientist.y - player.y);
@@ -84,18 +85,47 @@ export function render(ctx, state) {
       ctx.fill();
 
       // Body
-      ctx.fillStyle = '#e8e8f0';
+      ctx.fillStyle = scientist.isGuard ? '#b86d4e' : '#e8e8f0';
       ctx.beginPath();
       ctx.arc(sx, sy, 9, 0, Math.PI * 2);
       ctx.fill();
 
       // Helmet visor
-      ctx.fillStyle = '#88ccff';
+      ctx.fillStyle = scientist.isGuard ? '#ffb16c' : '#88ccff';
       ctx.beginPath();
       ctx.arc(sx, sy, 5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.globalAlpha = 1;
+    }
+  }
+
+  // Objective markers: local only, so exploring the facility still matters.
+  if (lab.card && !lab.keycardTaken) {
+    const x = (lab.card.x + .5) * ts, y = (lab.card.y + .5) * ts;
+    if (Math.hypot(x - player.x, y - player.y) < 230) {
+      ctx.fillStyle = '#ffc66b';
+      ctx.fillRect(x - camX - 9, y - camY - 5, 18, 10);
+      ctx.fillStyle = '#372516';
+      ctx.fillRect(x - camX - 5, y - camY - 2, 5, 4);
+      ctx.fillStyle = '#ffc66b';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('ACCESS CARD', x-camX, y-camY-12);
+      ctx.textAlign = 'start';
+    }
+  }
+  if (lab.exit) {
+    const x = (lab.exit.x + .5) * ts, y = (lab.exit.y + .5) * ts;
+    if (Math.hypot(x-player.x,y-player.y)<250) {
+      ctx.strokeStyle = lab.exitOpen ? '#59ffb2' : '#c95f55';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x-camX-14,y-camY-14,28,28);
+      ctx.fillStyle = ctx.strokeStyle;
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(lab.exitOpen ? 'ELEVATOR' : 'LOCKED', x-camX,y-camY-21);
+      ctx.textAlign = 'start';
     }
   }
 
@@ -130,7 +160,7 @@ export function render(ctx, state) {
   if (player.crouching) {
     ctx.fillStyle = '#0f0';
     ctx.font = '10px monospace';
-    ctx.fillText('[HIDDEN]', px - 22, py - 18);
+    ctx.fillText('[CROUCH]', px - 22, py - 18);
   }
 
   // Apply blur overlay
