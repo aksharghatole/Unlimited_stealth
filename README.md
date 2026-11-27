@@ -6,6 +6,10 @@ A top-down atmospheric stealth-horror game. Escape a mysterious laboratory as a 
 
 No dependencies or build step. From the repository root, run `python -m http.server 8000` and open http://localhost:8000 in a desktop browser.
 
+## Presentation
+
+Six industrial palettes, procedural character sprites, smoothly following camera, wall-clipped security beams, and restrained event accents. Reduced-motion system preferences disable camera easing, animated dust and CSS animations. Visuals are generated with Canvas; no external art assets are required.
+
 ## Controls
 
 - Begin protocol: click the start button.
