@@ -11,7 +11,9 @@ export class AudioEngine {
 
   init() {
     if (this.ctx) return;
-    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    try { this.ctx = new AudioContext(); } catch { return; }
     this.masterGain = this.ctx.createGain();
     this.masterGain.gain.value = 0.4;
     this.masterGain.connect(this.ctx.destination);

@@ -32,14 +32,14 @@ export const LAB_MAP = [
 ];
 
 export const SPAWN_TILE = { x: 9, y: 6 };      // center of operating table
+export const FREE_TILE = { x: 9, y: 8 };       // clear floor beside the table
 export const DESK_TILE = { x: 8, y: 12 };       // keycard location
 export const EXIT_TILE = { x: 14, y: 14 };      // locked door at bottom
 export const SCIENTIST_PATH = [
-  { x: 2, y: 2 },
-  { x: 2, y: 12 },
-  { x: 13, y: 12 },
   { x: 13, y: 2 },
-  { x: 2, y: 2 }
+  { x: 13, y: 11 },
+  { x: 7, y: 11 },
+  { x: 7, y: 2 }
 ];
 
 export class Lab {
@@ -56,13 +56,13 @@ export class Lab {
   isWall(tx, ty) {
     if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) return true;
     const t = this.map[ty][tx];
-    return t === TileType.WALL || t === TileType.TABLE || t === TileType.DESK;
+    return t === TileType.WALL || t === TileType.TABLE || t === TileType.DESK || t === TileType.GLASS || t === TileType.DOOR_LOCKED;
   }
 
   isOpaque(tx, ty) {
     if (tx < 0 || ty < 0 || tx >= this.width || ty >= this.height) return true;
     const t = this.map[ty][tx];
-    return t === TileType.WALL || t === TileType.TABLE || t === TileType.DESK;
+    return t === TileType.WALL || t === TileType.TABLE || t === TileType.DESK || t === TileType.DOOR_LOCKED;
   }
 
   openExit() {

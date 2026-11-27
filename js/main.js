@@ -1,7 +1,7 @@
 // main.js — Game loop and state
 
 import { IntroDirector, IntroState } from './intro.js';
-import { Lab, SPAWN_TILE, DESK_TILE, EXIT_TILE, SCIENTIST_PATH } from './lab.js';
+import { Lab, SPAWN_TILE, FREE_TILE, DESK_TILE, EXIT_TILE, SCIENTIST_PATH } from './lab.js';
 import { Player } from './player.js';
 import { Scientist } from './scientist.js';
 import { AudioEngine } from './audio.js';
@@ -28,6 +28,12 @@ const player = new Player(
   SPAWN_TILE.y * lab.tileSize + lab.tileSize / 2
 );
 let scientist = null;
+let hideTime = 0;
+let detectionTime = 0;
+let ended = false;
+const startButton = document.getElementById('start-game');
+const restartButton = document.getElementById('restart-game');
+restartButton.addEventListener('click', () => location.reload());
 
 const keys = {};
 let effects = {
@@ -46,13 +52,8 @@ document.addEventListener('keydown', e => {
   // First interaction unlocks audio context
   if (!audio.enabled) audio.init();
 
-  // Crouch to hide
-  if (k === 's' && director.currentStep()?.id === IntroState.SCIENTIST) {
-    // Crouch is checked in update loop; but mark as registered
-    setTimeout(() => {
-      if (player.crouching) director.registerAction('hide');
-    }, 200);
-  }
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  if (ended || e.repeat) return;
 
   // Take keycard
   if (k === 'e' && director.currentStep()?.id === IntroState.KEYCARD) {
@@ -60,6 +61,7 @@ document.addEventListener('keydown', e => {
     const dy = player.y - (DESK_TILE.y * lab.tileSize + lab.tileSize / 2);
     if (Math.hypot(dx, dy) < 60) {
       lab.takeKeycard();
+      lab.openExit();
       audio.playBeep(1400, 0.08, 0.2);
       director.registerAction('take_keycard');
     }
@@ -73,6 +75,7 @@ document.addEventListener('keyup', e => {
   keys[e.key.toLowerCase()] = false;
 });
 
+window.addEventListener('blur', () => { for (const key of Object.keys(keys)) keys[key] = false; });
 let lastMouse = null;
 document.addEventListener('mousemove', e => {
   if (director.currentStep()?.id === IntroState.RESTRAINTS) {
@@ -106,6 +109,10 @@ director.on('onStep', ({ started, step, completed }) => {
 
     // Player movement permission
     player.canMove = !!step.effects.canMove;
+    if (step.id === IntroState.FREE) {
+      player.x = (FREE_TILE.x + 0.5) * lab.tileSize;
+      player.y = (FREE_TILE.y + 0.5) * lab.tileSize;
+    }
 
     // Spawn scientist at the right beat
     if (step.effects.spawnScientist && !scientist) {
@@ -134,20 +141,24 @@ director.on('onStep', ({ started, step, completed }) => {
     }
   }
 
-  if (completed === IntroState.SCIENTIST && scientist) {
-    // Scientist has entered — begin leaving after a pause
-    setTimeout(() => {
-      scientist = null; // walks out (simplified)
-    }, 3000);
-  }
+  if (completed === IntroState.SCIENTIST) scientist = null;
 });
 
-director.on('onComplete', () => {
-  console.log('[UMBRA] Intro complete. Handing off to procedural generation.');
-  // For now, freeze here — next module will generate floors
-  subtitleEl.textContent = 'The corridor stretches ahead. The facility is vast. You are small.';
+function endGame(success) {
+  ended = true;
+  player.canMove = false;
+  player.moving = false;
+  player.crouching = false;
+  audio.setHeartbeat(0);
+  document.body.classList.remove('danger');
+  subtitleEl.textContent = success ? 'PROLOGUE COMPLETE — you escaped the laboratory.' : 'SUBJECT DETECTED — the laboratory is on lockdown.';
   subtitleBox.style.opacity = 1;
-});
+  objectiveEl.textContent = success ? 'Laboratory escaped' : 'Try again';
+  restartButton.hidden = false;
+  restartButton.focus();
+}
+
+director.on('onComplete', () => endGame(true));
 
 function applyEffects() {
   blurEl.style.backdropFilter = `blur(${effects.blur}px)`;
@@ -164,23 +175,21 @@ function loop(now) {
   last = now;
 
   // Update intro director
-  director.update(dt);
+  if (!ended) director.update(dt);
 
   // Update player
   player.update(dt, keys, lab);
 
-  // Update scientist
-  if (scientist) {
+  if (scientist && !ended) {
     scientist.update(dt);
-
-    // Check if scientist sees player
-    if (scientist.canSee(player, lab)) {
-      if (director.currentStep()?.id === IntroState.SCIENTIST) {
-        // Scientist sees you — this is a failure state for now
-        subtitleEl.textContent = 'The scientist locks eyes with you. "SUBJECT IS AWAKE!"';
-        audio.playAlarm();
-        document.body.classList.add('danger');
-      }
+    const seen = scientist.canSee(player, lab);
+    detectionTime = seen ? Math.min(1.25, detectionTime + dt) : Math.max(0, detectionTime - dt * 2);
+    hideTime = player.crouching && !player.moving && !seen ? hideTime + dt : 0;
+    if (detectionTime >= 1.25) {
+      audio.playAlarm();
+      endGame(false);
+    } else if (hideTime >= 1.5) {
+      director.registerAction('hide');
     }
   }
 
@@ -193,16 +202,11 @@ function loop(now) {
     }
   }
 
-  // Open exit when keycard taken
-  if (lab.keycardTaken && !lab.exitOpen) {
-    setTimeout(() => lab.openExit(), 500);
+  if (!ended && director.currentStep()) {
+    const target = player.crouching ? 10 : player.moving ? 70 : 35;
+    player.vis += (target - player.vis) * Math.min(1, dt * 3);
+    player.shadow = 100 - player.vis;
   }
-
-  // Visibility update (simple version)
-  // Lab is bright — you're always somewhat visible
-  const brightness = 1 - effects.brightness * 0.5;
-  player.vis = Math.min(100, player.vis + (player.moving ? 0.4 : 0.1) * brightness);
-  if (player.crouching) player.vis = Math.max(0, player.vis - 0.8);
 
   // HUD
   visEl.textContent = Math.round(player.vis) + '%';
@@ -222,15 +226,14 @@ function loop(now) {
 }
 
 // --- Boot ---
-subtitleEl.textContent = 'Click anywhere to begin.';
+subtitleEl.textContent = 'UMBRA: Protocol Zero';
 subtitleBox.style.opacity = 1;
 
-function startOnFirstClick() {
+startButton.addEventListener('click', () => {
   audio.init();
-  document.removeEventListener('click', startOnFirstClick);
-  director.advance(); // begin AWAKE
-}
-
-document.addEventListener('click', startOnFirstClick);
+  startButton.hidden = true;
+  startButton.blur();
+  director.start();
+}, { once: true });
 
 requestAnimationFrame(loop);

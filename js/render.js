@@ -79,7 +79,7 @@ export function render(ctx, state) {
       ctx.fillStyle = 'rgba(255, 200, 100, 0.08)';
       ctx.beginPath();
       ctx.moveTo(sx, sy);
-      ctx.arc(sx, sy, 220, -0.6, 0.6);
+      ctx.arc(sx, sy, 220, scientist.heading - 0.6, scientist.heading + 0.6);
       ctx.closePath();
       ctx.fill();
 
