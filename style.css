@@ -141,3 +141,28 @@ canvas { max-width: 100vw; max-height: 100vh; object-fit: contain; }
 #hud-alert { color: #ffb16c; }
 
 #hud-status, #hud-lure { color: #9dddc9; }
+
+:root { color-scheme: dark; }
+body { background:#05090d; color:#a5c3bd; }
+canvas { image-rendering:auto; }
+#scanlines { position:fixed; inset:0; z-index:6; pointer-events:none; opacity:.10; background:repeating-linear-gradient(0deg,transparent 0 3px,#05090d 3px 4px); }
+#hud { display:grid; grid-template-columns:repeat(3,minmax(70px,1fr)); gap:5px; opacity:1; max-width:52%; }
+.hud-item { padding:7px 10px; background:rgba(9,18,23,.84); border:1px solid #2a4145; border-left:2px solid #537973; font-size:9px; letter-spacing:1px; color:#8ba6a3; }
+.hud-item span { display:block; margin-top:4px; font-size:13px; font-weight:bold; color:#d0e6df; }
+#objective-box { padding:10px 14px; max-width:43%; background:rgba(9,18,23,.84); border-right:2px solid #80ab9e; }
+#objective-label { color:#91b4aa; }
+#objective-text { color:#d6e9e1; text-shadow:none; }
+#subtitle-text { color:#cedfd8; border-left-color:#78a59a; background:rgba(8,16,21,.90); text-shadow:none; font-size:14px; letter-spacing:.5px; }
+#game-actions { width:min(90vw,470px); text-align:center; }
+#title-panel { background:rgba(7,14,19,.92); border:1px solid #405b5e; padding:30px 20px; box-shadow:0 0 50px #0009; }
+#title-panel h1 { color:#d3e9e2; font-size:clamp(36px,8vw,68px); letter-spacing:.22em; margin:18px 0; }
+#title-panel h1 span { display:block; font-size:14px; letter-spacing:.5em; margin-top:7px; color:#91b6ac; }
+#title-panel p { color:#a5bcb8; line-height:1.6; font-size:13px; }
+#title-panel .eyebrow,#title-panel .keys-hint { color:#769590; font-size:10px; letter-spacing:1.5px; }
+#title-panel .keys-hint { margin-top:18px; }
+#game-actions button { margin-top:12px; border:1px solid #7eb8a5; background:#102b2c; color:#d5f4e5; text-transform:uppercase; letter-spacing:2px; }
+#game-actions button:hover { background:#254740; }
+[hidden] { display:none!important; }
+.danger #vignette { box-shadow:inset 0 0 85px rgba(190,54,42,.26); }
+@media(max-width:650px){#hud{top:10px;left:10px;grid-template-columns:repeat(2,minmax(54px,1fr));}.hud-item{padding:4px 6px;font-size:8px;}.hud-item span{font-size:11px;}#objective-box{top:10px;right:10px;padding:7px;}#subtitle-box{width:90%;bottom:25px;}#subtitle-text{font-size:12px;}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;}}

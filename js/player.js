@@ -4,6 +4,8 @@ export class Player {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.heading = -Math.PI/2;
+    this.stride = 0;
     this.vx = 0;
     this.vy = 0;
     this.radius = 10;
@@ -52,6 +54,10 @@ export class Player {
     const checkY2 = ny;
     if (!this._collides(checkX2, checkY2, lab)) this.y = ny;
     this.moving = this.x !== oldX || this.y !== oldY;
+    if(this.moving){
+      this.heading=Math.atan2(this.y-oldY,this.x-oldX);
+      this.stride+=Math.hypot(this.x-oldX,this.y-oldY)*.15;
+    }
   }
 
   _collides(px, py, lab) {

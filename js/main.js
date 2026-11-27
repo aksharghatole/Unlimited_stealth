@@ -42,6 +42,9 @@ let scientist = null;
 let hideTime = 0;
 let detectionTime = 0;
 let ended = false;
+let time=0, impact=null, wasChasing=false;
+const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+function accent(kind){impact={kind,age:0};}
 const startButton = document.getElementById('start-game');
 const restartButton = document.getElementById('restart-game');
 restartButton.addEventListener('click', () => location.reload());
@@ -77,6 +80,7 @@ document.addEventListener('keydown', e => {
   if (floor && k === 'e') {
     if (lab.collect(player)) {
       audio.playBeep(1400, 0.08, 0.2);
+      accent('access');
       objectiveEl.textContent = 'Reach the green elevator';
       subtitleEl.textContent = 'Access granted. Keep moving.';
     }
@@ -150,6 +154,7 @@ director.on('onStep', ({ started, step, completed }) => {
     // Alarm
     if (step.effects.alarm) {
       audio.playAlarm();
+      accent('danger');
     }
 
     // Shake
@@ -174,6 +179,7 @@ director.on('onStep', ({ started, step, completed }) => {
 
 function endGame(success) {
   ended = true;
+  accent(success?'access':'danger');
   player.canMove = false;
   player.moving = false;
   player.crouching = false;
@@ -188,6 +194,7 @@ function endGame(success) {
 
 function enterFloor(number) {
   floor = number;
+  accent('access'); wasChasing=false;
   lab = new Facility(runSeed, floor);
   player.x = (lab.spawn.x + .5) * lab.tileSize;
   player.y = (lab.spawn.y + .5) * lab.tileSize;
@@ -224,6 +231,7 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
+  time+=dt; if(impact)impact.age+=dt;
 
   // Update intro director
   if (!ended) director.update(dt);
@@ -263,6 +271,8 @@ function loop(now) {
     let captured=false;
     for(const guard of guards) if(guard.tick(dt,player,lab)) captured=true;
     const chasing=guards.some(g=>g.state==='CHASE');
+    if(chasing&&!wasChasing)accent('danger');
+    wasChasing=chasing;
     const searching=guards.some(g=>g.state==='SEARCH');
     detectionTime=1.25*Math.max(0,...guards.map(g=>g.state==='CHASE'?1:g.suspicion),...cameras.map(c=>c.suspicion));
     statusEl.textContent=chasing?'PURSUIT':isHidden(player,lab)?'CONCEALED':searching?'SEARCH':detectionTime>.25?'SUSPICIOUS':'CLEAR';
@@ -299,6 +309,7 @@ function loop(now) {
     lurePulse,
     concealed: floor && isHidden(player,lab),
     canvas,
+    dt,time,impact,reducedMotion:motionPreference.matches,
     effects,
     introStep: director.currentStep()?.id
   });
@@ -313,6 +324,7 @@ subtitleBox.style.opacity = 1;
 startButton.addEventListener('click', () => {
   audio.init();
   startButton.hidden = true;
+  document.getElementById('title-panel').hidden=true;
   startButton.blur();
   director.start();
 }, { once: true });
