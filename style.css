@@ -139,3 +139,5 @@ canvas { max-width: 100vw; max-height: 100vh; object-fit: contain; }
 
 #hud { flex-wrap: wrap; max-width: 60%; gap: 8px 16px; }
 #hud-alert { color: #ffb16c; }
+
+#hud-status, #hud-lure { color: #9dddc9; }
