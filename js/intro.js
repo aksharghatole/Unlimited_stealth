@@ -57,7 +57,7 @@ export const INTRO_SCRIPT = [
   {
     id: IntroState.SCIENTIST,
     duration: null,
-    subtitle: 'Footsteps. Someone is coming. [S] to crouch — hide under the table.',
+    subtitle: 'Footsteps. Someone is coming. [C] to crouch — stay low until the scientist leaves.',
     objective: 'Hide',
     effects: {
       blur: 3,
@@ -101,7 +101,7 @@ export const INTRO_SCRIPT = [
     id: IntroState.ESCAPE,
     duration: null,
     subtitle: 'The corridor stretches ahead. The facility is vast. You are small.',
-    objective: 'Reach the surface',
+    objective: 'Reach the laboratory exit',
     effects: {
       blur: 0,
       brightness: 0,
@@ -114,7 +114,7 @@ export const INTRO_SCRIPT = [
 
 export class IntroDirector {
   constructor() {
-    this.index = 0;
+    this.index = -1;
     this.timer = 0;
     this.mouseWiggle = 0;
     this.lastMouse = null;
@@ -172,7 +172,12 @@ export class IntroDirector {
     }
   }
 
+  start() {
+    if (this.index === -1 && !this.finished) this.advance();
+  }
+
   advance() {
+    if (this.finished) return;
     const step = this.currentStep();
     if (step) this.emit('onStep', { completed: step.id });
 

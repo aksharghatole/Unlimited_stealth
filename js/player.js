@@ -18,7 +18,7 @@ export class Player {
   }
 
   update(dt, keys, lab) {
-    if (!this.canMove) return;
+    if (!this.canMove) { this.moving = false; this.crouching = false; return; }
 
     let dx = 0, dy = 0;
     if (keys['w'] || keys['arrowup']) dy -= 1;
@@ -26,7 +26,7 @@ export class Player {
     if (keys['a'] || keys['arrowleft']) dx -= 1;
     if (keys['d'] || keys['arrowright']) dx += 1;
 
-    this.crouching = !!keys['s'];
+    this.crouching = !!(keys['c'] || keys['control']);
 
     if (dx || dy) {
       const mag = Math.hypot(dx, dy);
@@ -37,7 +37,7 @@ export class Player {
     if (this.crouching) speed = this.crouchSpeed;
     else if (keys['shift']) speed = this.runSpeed;
 
-    this.moving = (dx !== 0 || dy !== 0);
+    const oldX = this.x, oldY = this.y;
 
     const nx = this.x + dx * speed * dt;
     const ny = this.y + dy * speed * dt;
@@ -51,6 +51,7 @@ export class Player {
     const checkX2 = this.x;
     const checkY2 = ny;
     if (!this._collides(checkX2, checkY2, lab)) this.y = ny;
+    this.moving = this.x !== oldX || this.y !== oldY;
   }
 
   _collides(px, py, lab) {

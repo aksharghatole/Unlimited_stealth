@@ -7,6 +7,7 @@ export class Scientist {
     this.x = path[0].x * 40 + 20;
     this.y = path[0].y * 40 + 20;
     this.speed = 50;
+    this.heading = Math.atan2(path[1].y - path[0].y, path[1].x - path[0].x);
     this.state = 'PATROL'; // PATROL | ALERT
     this.radius = 10;
     this.pauseTimer = 0;
@@ -33,8 +34,10 @@ export class Scientist {
       return;
     }
 
-    this.x += (dx / dist) * this.speed * dt;
-    this.y += (dy / dist) * this.speed * dt;
+    this.heading = Math.atan2(dy, dx);
+    const travel = Math.min(dist, this.speed * dt);
+    this.x += (dx / dist) * travel;
+    this.y += (dy / dist) * travel;
   }
 
   // Called each frame with player position
@@ -42,7 +45,8 @@ export class Scientist {
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist > 220) return false;
+    if (dist > 220 || (player.crouching && dist > 75)) return false;
+    if (dist > 25 && Math.cos(Math.atan2(dy, dx) - this.heading) < Math.cos(0.6)) return false;
 
     // Line of sight check
     const steps = Math.ceil(dist / 20);
