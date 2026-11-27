@@ -6,6 +6,7 @@ import { Player } from './player.js';
 import { Scientist } from './scientist.js';
 import { AudioEngine } from './audio.js';
 import { render } from './render.js';
+import { Facility, FLOOR_COUNT } from './facility.js';
 
 // --- Setup ---
 const canvas = document.getElementById('game');
@@ -22,7 +23,11 @@ const blurEl = document.getElementById('blur-overlay');
 
 const director = new IntroDirector();
 const audio = new AudioEngine();
-const lab = new Lab();
+let lab = new Lab();
+const runSeed = Math.floor(Math.random() * 4294967296);
+let floor = 0;
+let guards = [];
+const alertEl = document.getElementById('hud-alert');
 const player = new Player(
   SPAWN_TILE.x * lab.tileSize + lab.tileSize / 2,
   SPAWN_TILE.y * lab.tileSize + lab.tileSize / 2
@@ -54,6 +59,15 @@ document.addEventListener('keydown', e => {
 
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
   if (ended || e.repeat) return;
+
+  if (floor && k === 'e') {
+    if (lab.collect(player)) {
+      audio.playBeep(1400, 0.08, 0.2);
+      objectiveEl.textContent = 'Reach the green elevator';
+      subtitleEl.textContent = 'Access granted. Keep moving.';
+    }
+    return;
+  }
 
   // Take keycard
   if (k === 'e' && director.currentStep()?.id === IntroState.KEYCARD) {
@@ -151,14 +165,40 @@ function endGame(success) {
   player.crouching = false;
   audio.setHeartbeat(0);
   document.body.classList.remove('danger');
-  subtitleEl.textContent = success ? 'PROLOGUE COMPLETE — you escaped the laboratory.' : 'SUBJECT DETECTED — the laboratory is on lockdown.';
+  subtitleEl.textContent = success ? 'PROTOCOL ZERO COMPLETE — you reached the surface.' : 'SUBJECT DETECTED — the facility is on lockdown.';
   subtitleBox.style.opacity = 1;
-  objectiveEl.textContent = success ? 'Laboratory escaped' : 'Try again';
+  objectiveEl.textContent = success ? 'Facility escaped' : 'Try again';
   restartButton.hidden = false;
   restartButton.focus();
 }
 
-director.on('onComplete', () => endGame(true));
+function enterFloor(number) {
+  floor = number;
+  lab = new Facility(runSeed, floor);
+  player.x = (lab.spawn.x + .5) * lab.tileSize;
+  player.y = (lab.spawn.y + .5) * lab.tileSize;
+  player.canMove = true;
+  player.moving = false;
+  player.vis = 0;
+  player.shadow = 100;
+  scientist = null;
+  guards = lab.patrols.map(path => {
+    const guard = new Scientist(path);
+    guard.speed = 50 + floor * 5;
+    guard.isGuard = true;
+    return guard;
+  });
+  detectionTime = 0;
+  document.body.classList.remove('danger');
+  effects = { blur: 0, brightness: 0.1, heartbeat: 0.5, vignette: 0.25, canMove: true };
+  applyEffects();
+  floorEl.textContent = floor + '/' + FLOOR_COUNT;
+  objectiveEl.textContent = 'Find the amber keycard [E]';
+  objectiveBox.style.opacity = 1;
+  subtitleEl.textContent = 'SECTOR ' + String(floor).padStart(2,'0') + ' — avoid patrols. Find an access card.';
+  subtitleBox.style.opacity = 1;
+}
+director.on('onComplete', () => enterFloor(1));
 
 function applyEffects() {
   blurEl.style.backdropFilter = `blur(${effects.blur}px)`;
@@ -202,7 +242,23 @@ function loop(now) {
     }
   }
 
-  if (!ended && director.currentStep()) {
+  if (floor && !ended) {
+    for (const guard of guards) guard.update(dt);
+    const seen = guards.some(guard => guard.canSee(player, lab));
+    detectionTime = seen ? Math.min(1.25, detectionTime + dt) : Math.max(0, detectionTime - dt * 1.5);
+    document.body.classList.toggle('danger', detectionTime > 0.2);
+    audio.setHeartbeat(0.45 + detectionTime * 0.4);
+    if (detectionTime >= 1.25) {
+      audio.playAlarm();
+      endGame(false);
+    } else if (lab.reachedExit(player)) {
+      if (floor === FLOOR_COUNT) endGame(true);
+      else enterFloor(floor + 1);
+    }
+  }
+
+  alertEl.textContent = Math.round(detectionTime / 1.25 * 100) + '%';
+  if (!ended && (director.currentStep() || floor)) {
     const target = player.crouching ? 10 : player.moving ? 70 : 35;
     player.vis += (target - player.vis) * Math.min(1, dt * 3);
     player.shadow = 100 - player.vis;
@@ -217,6 +273,7 @@ function loop(now) {
     lab,
     player,
     scientist,
+    guards,
     canvas,
     effects,
     introStep: director.currentStep()?.id
