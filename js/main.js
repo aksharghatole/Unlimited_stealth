@@ -34,7 +34,9 @@ const archiveEl=document.getElementById('hud-archive');
 const journal=document.getElementById('journal');
 const journalEntries=document.getElementById('journal-entries');
 const journalClose=document.getElementById('journal-close');
+const journalOpenButton=document.getElementById('journal-open');
 let journalOpen=false;
+let journalReturnFocus=null;
 let guards = [];
 let cameras = [];
 let lureCooldown = 0;
@@ -67,6 +69,10 @@ let effects = {
 };
 
 function showJournal(open){
+  if(open&&!journalOpen){
+    const active=document.activeElement;
+    journalReturnFocus=active&&active!==document.body?active:journalOpenButton;
+  }
   journalOpen=open;journal.hidden=!open;
   for(const key of Object.keys(keys))keys[key]=false;
   if(open){
@@ -79,10 +85,15 @@ function showJournal(open){
       article.append(heading,body);journalEntries.append(article);
     }
     audio.setHeartbeat(0);journalClose.focus();
-  }else {journalClose.blur();audio.setHeartbeat(ended?0:.45);}
+  }else {
+    journalClose.blur();
+    if(journalReturnFocus?.isConnected)journalReturnFocus.focus();
+    journalReturnFocus=null;
+    audio.setHeartbeat(ended?0:.45);
+  }
 }
 journalClose.addEventListener('click',()=>showJournal(false));
-document.getElementById('journal-open').addEventListener('click',()=>{if(floor)showJournal(true);});
+journalOpenButton.addEventListener('click',()=>{if(floor)showJournal(true);});
 
 // --- Input ---
 document.addEventListener('keydown', e => {
