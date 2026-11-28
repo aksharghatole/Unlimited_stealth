@@ -8,6 +8,7 @@ import { AudioEngine } from './audio.js';
 import { render } from './render.js';
 import { Facility, FLOOR_COUNT } from './facility.js';
 import { Guard, SecurityCamera, isHidden, lureNearest } from './security.js';
+import { Inventory, nearbyItem, MAX_CHARGES } from './inventory.js';
 
 // --- Setup ---
 const canvas = document.getElementById('game');
@@ -27,6 +28,13 @@ const audio = new AudioEngine();
 let lab = new Lab();
 const runSeed = Math.floor(Math.random() * 4294967296);
 let floor = 0;
+const inventory=new Inventory();
+const cellsEl=document.getElementById('hud-cells');
+const archiveEl=document.getElementById('hud-archive');
+const journal=document.getElementById('journal');
+const journalEntries=document.getElementById('journal-entries');
+const journalClose=document.getElementById('journal-close');
+let journalOpen=false;
 let guards = [];
 let cameras = [];
 let lureCooldown = 0;
@@ -58,6 +66,24 @@ let effects = {
   canMove: false
 };
 
+function showJournal(open){
+  journalOpen=open;journal.hidden=!open;
+  for(const key of Object.keys(keys))keys[key]=false;
+  if(open){
+    journalEntries.replaceChildren();
+    if(!inventory.records.size)journalEntries.textContent='No recovered records. Find blue archive terminals and press E.';
+    for(const record of [...inventory.records.values()].sort((a,b)=>a.id.localeCompare(b.id))){
+      const article=document.createElement('article');
+      const heading=document.createElement('h3');heading.textContent=record.id+' / '+record.title;
+      const body=document.createElement('p');body.textContent=record.body;
+      article.append(heading,body);journalEntries.append(article);
+    }
+    audio.setHeartbeat(0);journalClose.focus();
+  }else {journalClose.blur();audio.setHeartbeat(ended?0:.45);}
+}
+journalClose.addEventListener('click',()=>showJournal(false));
+document.getElementById('journal-open').addEventListener('click',()=>{if(floor)showJournal(true);});
+
 // --- Input ---
 document.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
@@ -67,7 +93,15 @@ document.addEventListener('keydown', e => {
   if (!audio.enabled) audio.init();
 
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
-  if (ended || e.repeat) return;
+  if(e.repeat)return;
+  if(floor && (k==='j'||(k==='escape'&&journalOpen))){showJournal(!journalOpen);return;}
+  if(journalOpen||ended)return;
+  if(floor && k==='f'){
+    const count=inventory.jam(player,cameras,lab);
+    subtitleEl.textContent=count?'SIGNAL JAMMED — cameras offline for 8 seconds.':inventory.charges?'No active camera in range.':'No jammer cells remaining.';
+    if(count){accent('access');audio.playBeep(620,.12,.15);}
+    return;
+  }
 
   if (floor && k === 'q' && lureCooldown<=0) {
     const point={x:player.x,y:player.y};
@@ -83,6 +117,13 @@ document.addEventListener('keydown', e => {
       accent('access');
       objectiveEl.textContent = 'Reach the green elevator';
       subtitleEl.textContent = 'Access granted. Keep moving.';
+    }else{
+      const item=nearbyItem(lab.items,player,lab);
+      if(item?.type==='cell')subtitleEl.textContent=inventory.collectCell(item)?'Jammer cell recovered.':'Cell capacity reached.';
+      if(item?.type==='archive'&&inventory.read(item)){
+        subtitleEl.textContent='ARCHIVE RECOVERED — J to read.';
+        accent('access');audio.playBeep(980,.08,.12);
+      }
     }
     return;
   }
@@ -185,15 +226,16 @@ function endGame(success) {
   player.crouching = false;
   audio.setHeartbeat(0);
   document.body.classList.remove('danger');
-  subtitleEl.textContent = success ? 'PROTOCOL ZERO COMPLETE — you reached the surface.' : 'SUBJECT DETECTED — the facility is on lockdown.';
+  subtitleEl.textContent = success ? inventory.ending() : 'SUBJECT DETECTED — the facility is on lockdown.';
   subtitleBox.style.opacity = 1;
-  objectiveEl.textContent = success ? 'Facility escaped' : 'Try again';
+  objectiveEl.textContent = success ? 'Facility escaped · '+inventory.records.size+'/5 records' : 'Try again';
   restartButton.hidden = false;
   restartButton.focus();
 }
 
 function enterFloor(number) {
   floor = number;
+  document.getElementById('journal-open').hidden=false;
   accent('access'); wasChasing=false;
   lab = new Facility(runSeed, floor);
   player.x = (lab.spawn.x + .5) * lab.tileSize;
@@ -213,7 +255,7 @@ function enterFloor(number) {
   floorEl.textContent = floor + '/' + FLOOR_COUNT;
   objectiveEl.textContent = 'Find the amber keycard [E]';
   objectiveBox.style.opacity = 1;
-  subtitleEl.textContent = 'SECTOR ' + String(floor).padStart(2,'0') + ' — C: hide in vents. Q: noise lure. E: access card.';
+  subtitleEl.textContent = 'SECTOR ' + String(floor).padStart(2,'0') + ' — E: collect. F: jam cameras. J: archive. C: hide.';
   subtitleBox.style.opacity = 1;
 }
 director.on('onComplete', () => enterFloor(1));
@@ -231,6 +273,7 @@ let last = performance.now();
 function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
+  if(journalOpen){requestAnimationFrame(loop);return;}
   time+=dt; if(impact)impact.age+=dt;
 
   // Update intro director
@@ -298,6 +341,8 @@ function loop(now) {
   // HUD
   visEl.textContent = Math.round(player.vis) + '%';
   shadowEl.textContent = Math.round(player.shadow) + '%';
+  cellsEl.textContent=floor?inventory.charges+'/'+MAX_CHARGES:'—';
+  archiveEl.textContent=floor?inventory.records.size+'/5':'—';
 
   // Render
   render(ctx, {

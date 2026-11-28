@@ -22,6 +22,10 @@ Six industrial palettes, procedural character sprites, smoothly following camera
 
 Keyboard and mouse are currently required. Touch controls are future work. Patrols build suspicion, then chase, search the last known location, and return to their routes. Being caught ends the run. Sweeping cameras appear from sector two and summon guards when their alert fills. Break line of sight and use vents to evade pursuit.
 
+## Equipment and evidence
+
+Press E near green cells or blue archive terminals. Carry up to three jammer cells; F consumes one only if an active camera is within 190 pixels and unobstructed. Affected cameras go offline for eight seconds. J opens a paused archive with recovered records. Collect at least four of five optional records for the Transmission ending; escaping without enough evidence produces the Fugitive ending. Equipment and records carry between sectors, not between runs.
+
 ## Tests
 
 Run `node --test` using Node.js 20 or later. No npm dependencies are required.
