@@ -102,9 +102,11 @@ export class Guard extends Scientist {
 export class SecurityCamera {
   constructor(spec,lab){
     Object.assign(this,center(spec,lab));
-    this.base=spec.heading;this.heading=this.base;this.time=spec.phase;this.suspicion=0;this.cooldown=0;
+    this.base=spec.heading;this.heading=this.base;this.time=spec.phase;this.suspicion=0;this.cooldown=0;this.disabledFor=0;
   }
+  disable(seconds){this.disabledFor=Math.max(this.disabledFor,seconds);this.suspicion=0;}
   tick(dt,player,lab){
+    if(this.disabledFor>0){this.disabledFor=Math.max(0,this.disabledFor-dt);return false;}
     this.time+=dt;this.heading=this.base+Math.sin(this.time*.8)*.65;
     this.cooldown=Math.max(0,this.cooldown-dt);
     this.suspicion=clamp(this.suspicion+(sees(this,player,lab,190,.45)?dt*.8:-dt*.65));

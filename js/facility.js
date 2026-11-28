@@ -82,6 +82,12 @@ export class Facility extends Lab {
       const r=cameraRooms.splice(Math.floor(rng()*cameraRooms.length),1)[0];
       this.cameras.push({x:r.x+2,y:r.y,heading:Math.PI/2,phase:rng()*6});
     }
+    const archiveRoom=pick(rng,rooms.filter(r=>r.id!==start&&r.id!==cardRoom.id));
+    const supplyRoom=pick(rng,rooms.filter(r=>r.id!==start&&r.id!==archiveRoom.id));
+    this.items=[
+      {type:'archive',id:String(floor).padStart(2,'0'),x:archiveRoom.x+3,y:archiveRoom.y+1,collected:false},
+      {type:'cell',x:supplyRoom.x+1,y:supplyRoom.y+1,collected:false}
+    ];
   }
   collect(player) {
     if(this.keycardTaken || this.distanceTo(player,this.card)>55) return false;

@@ -25,6 +25,9 @@
     <div class="hud-item">ALERT <span id="hud-alert">0%</span></div>
     <div class="hud-item">STATE <span id="hud-status">—</span></div>
     <div class="hud-item">LURE <span id="hud-lure">—</span></div>
+    <div class="hud-item">JAM [F] <span id="hud-cells">—</span></div>
+    <div class="hud-item">RECORDS <span id="hud-archive">—</span></div>
+    <button id="journal-open" class="hud-item" hidden>ARCHIVE [J]</button>
   </div>
 
   <div id="game-actions">
@@ -32,6 +35,9 @@
     <button id="start-game">Begin protocol</button>
     <button id="restart-game" hidden>Restart protocol</button>
   </div>
+  <section id="journal" role="dialog" aria-modal="true" aria-labelledby="journal-title" hidden>
+    <div class="journal-inner"><h2 id="journal-title">RECOVERED ARCHIVE</h2><p>Collect four records to transmit evidence at the surface.</p><div id="journal-entries"></div><button id="journal-close">Resume [J / Esc]</button></div>
+  </section>
   <div id="vignette"></div>
   <div id="scanlines" aria-hidden="true"></div>
   <div id="blur-overlay"></div>

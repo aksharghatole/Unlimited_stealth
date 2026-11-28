@@ -105,10 +105,11 @@ export function render(ctx,state){
   }
   for(const a of state.cameras||[]){
     if(Math.hypot(a.x-player.x,a.y-player.y)>330)continue;
-    beam(ctx,lab,a,190,.45,offset,a.suspicion>.5?'rgba(255,82,85,.34)':'rgba(112,183,255,.24)');
+    if(!a.disabledFor)beam(ctx,lab,a,190,.45,offset,a.suspicion>.5?'rgba(255,82,85,.34)':'rgba(112,183,255,.24)');
     const x=a.x-camX,y=a.y-camY;
     ctx.save();ctx.translate(x,y);ctx.rotate(a.heading);
-    rect(ctx,-10,-6,19,12,'#1b282f');rect(ctx,-8,-4,13,8,'#71838b');rect(ctx,5,-3,5,6,a.suspicion>.5?'#ff766d':'#9ed8ff');ctx.restore();
+    rect(ctx,-10,-6,19,12,'#1b282f');rect(ctx,-8,-4,13,8,'#71838b');rect(ctx,5,-3,5,6,a.disabledFor?'#4a555a':a.suspicion>.5?'#ff766d':'#9ed8ff');ctx.restore();
+    if(a.disabledFor)label(ctx,'OFFLINE '+Math.ceil(a.disabledFor)+'s',x,y-14,'#9dddc9');
   }
   if(state.lurePulse){const a=state.lurePulse;ctx.strokeStyle='rgba(117,223,203,'+Math.max(0,a.time/1.2)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(a.x-camX,a.y-camY,12+(1.2-a.time)*120,0,Math.PI*2);ctx.stroke();}
   const objectiveCard=lab.card||(!lab.keycardTaken&&state.introStep==='KEYCARD'?{x:8,y:12}:null);
@@ -129,6 +130,15 @@ export function render(ctx,state){
       glow(ctx,sx,sy,34,lab.exitOpen?'rgba(80,255,160,.18)':'rgba(255,80,65,.13)');
       label(ctx,lab.exitOpen?'EXIT':'LOCKED',sx,sy-24,col);
     }
+  }
+  for(const item of lab.items||[]){
+    if(item.collected)continue;
+    const x=(item.x+.5)*ts,y=(item.y+.5)*ts;
+    if(Math.hypot(x-player.x,y-player.y)>210)continue;
+    const sx=x-camX,sy=y-camY,cell=item.type==='cell';
+    rect(ctx,sx-9,sy-7,18,14,'#15252b');rect(ctx,sx-7,sy-5,14,10,cell?'#b3d58b':'#7fbddc');
+    if(cell)rect(ctx,sx+9,sy-2,3,4,'#b3d58b');else line(ctx,sx-4,sy,sx+4,sy,'#233f50',2);
+    label(ctx,cell?'CELL [E]':'ARCHIVE [E]',sx,sy-13,cell?'#d1e7ae':'#a2daf6');
   }
   character(ctx,px,py,player.heading,'player',reduced?0:player.stride,player.crouching);
   if(player.crouching)label(ctx,state.concealed?'CONCEALED':'CROUCH',px,py-19,'#a7e8cc');
